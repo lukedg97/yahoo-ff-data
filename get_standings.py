@@ -3,79 +3,20 @@ from typing import List, Dict
 
 import polars as pl
 import yahoo_fantasy_api as yfa
-from yahoo_oauth import OAuth2
 
-DATA_DIR = Path("Data")
-OAUTH_FILE = "oauth2.json"
-OUTPUT_PARQUET = DATA_DIR / "standings.parquet"
+# Import shared helpers from common to avoid duplication
+from common import get_session, select_league, save_parquet
 
-def get_session() -> OAuth2:
-    """
-    Creates or refreshes an OAuth2 session using credentials in oauth2.json.
-    On first run, this will open a browser window to log in and authorize.
-    The yahoo_oauth library will also write/refresh token info back to oauth2.json.
-    """
-    oauth_path = Path(OAUTH_FILE)
-    if not oauth_path.exists():
-        raise FileNotFoundError(
-            f"Missing {OAUTH_FILE}. Create it with your Yahoo client_id/client_secret/redirect_uri."
-        )
-    sc = OAuth2(None, None, from_file=str(oauth_path))
-    if not sc.token_is_valid():
-        sc.refresh_access_token()
-    return sc
+OUTPUT_PARQUET = Path("Data") / "standings.parquet"
 
 
-def find_league_ids(sc: OAuth2, sport: str = "nfl", year: int | None = None) -> List[str]:
-    """
-    Returns a list of league_keys for the given sport/year visible to the authorized user.
-    Example league_key: '449.l.12345'
-    """
-    gm = yfa.Game(sc, sport)
-    league_ids = gm.league_ids(year=year) if year else gm.league_ids()
-    return league_ids
-
-
-def fetch_standings(sc: OAuth2, league_key: str) -> List[Dict]:
-    """
-    Fetch standings for a specific league_key.
-    """
+def fetch_standings(sc, league_key: str) -> List[Dict]:
+    """Fetch standings for a specific league_key using yahoo_fantasy_api.League."""
     lg = yfa.League(sc, league_key)
-    # This returns a list of dicts with keys like: name, team_key, wins, losses, ties, pct, points_for, points_against, etc.
     return lg.standings()
 
 
-def validate_parquet(path: Path) -> None:
-    """Validate that a Parquet file can be read and print its schema."""
-    try:
-        df_check = pl.read_parquet(path)
-    except Exception as e:
-        print(f"\n❌ Parquet validation failed for {path}:", e)
-        return
-
-    # Print a readable schema
-    print("\nParquet validation: ✅ file is readable")
-    print("Schema (column: dtype):")
-    for name, dtype in df_check.schema.items():
-        print(f"  - {name}: {dtype}")
-
-    # Optional secondary validation using DuckDB, if available
-    try:
-        import duckdb  # type: ignore
-        con = duckdb.connect(":memory:")
-        # If DuckDB can read the file and run a trivial query, we're good
-        con.execute("SELECT * FROM read_parquet(?) LIMIT 0", [str(path)])
-        print("DuckDB validation: ✅ read_parquet() succeeded")
-    except Exception as e:
-        print("DuckDB validation: ⚠️", e)
-
-
-def select_league(sc: OAuth2, sport: str = "nfl") -> str | None:
-    """Return a league_key for the given sport or None if none are found."""
-    league_ids = find_league_ids(sc, sport=sport)
-    if not league_ids:
-        return None
-    return league_ids[0]
+# Parquet validation is provided by ETL.validate_parquet
 
 
 def transform_standings(raw: List[Dict]) -> pl.DataFrame:
@@ -220,11 +161,9 @@ def display_standings(df: pl.DataFrame) -> None:
 
 
 def save_parquet(df: pl.DataFrame, path: Path) -> None:
-    """Ensure directory, write Parquet, and validate."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    df.write_parquet(path, compression="snappy")
-    print(f"\nSaved: {path}")
-    validate_parquet(path)
+    # Delegate to shared helper in ETL
+    from ETL import save_parquet as _save_parquet
+    _save_parquet(df, path)
 
 
 def get_standings() -> None:
