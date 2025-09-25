@@ -1,0 +1,6 @@
+{
+    "consumer_key": "YOUR_CLIENT_ID",
+    "consumer_secret": "YOUR_CLIENT_SECRET",
+    "redirect_uri": "http://127.0.0.1:8000/",
+    "token_time": 0
+}
