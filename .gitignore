@@ -215,3 +215,5 @@ oauth2.json
 #output files
 standings.json
 standings.csv
+Data/*
+!Data/.gitkeep

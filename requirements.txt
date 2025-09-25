@@ -1,3 +1,4 @@
 yahoo-fantasy-api
 yahoo_oauth
 pandas
+polars
