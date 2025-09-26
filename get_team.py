@@ -5,7 +5,7 @@ import polars as pl
 import yahoo_fantasy_api as yfa
 
 from common import get_session
-from common import save_parquet
+from common import save_parquet, debug_print
 
 # We no longer persist per-team parquet files; only build flat Data/team_players.parquet
 
@@ -76,9 +76,9 @@ def get_team(team_key: str) -> list:
         df = transform_team(payload)
         # Debug info: show a short repr and available attrs keys
         try:
-            print(
+            debug_print(
                 f"[DEBUG] team_key={team_key} payload_repr={str(payload.get('repr'))[:200]}")
-            print(
+            debug_print(
                 f"[DEBUG] payload attrs keys: {list((payload.get('attrs') or {}).keys())}")
         except Exception:
             pass
@@ -87,14 +87,15 @@ def get_team(team_key: str) -> list:
         try:
             roster_df = roster_to_rows(payload, team_key)
             if roster_df is not None:
-                print(
+                debug_print(
                     f"[DEBUG] roster rows to append for {team_key}: {roster_df.shape[0]}")
             if roster_df is not None and roster_df.shape[0] > 0:
                 # Normalize schema before append
                 try:
                     roster_df = _normalize_team_players_df(roster_df)
                 except Exception as e:
-                    print(f"[DEBUG] normalization failed for {team_key}: {e}")
+                    debug_print(
+                        f"[DEBUG] normalization failed for {team_key}: {e}")
                 team_players_path = Path("Data") / "team_players.parquet"
                 # If file exists, read and concatenate; otherwise save fresh
                 if team_players_path.exists():
@@ -107,14 +108,14 @@ def get_team(team_key: str) -> list:
                     try:
                         existing_dtypes = {c: str(t) for c, t in zip(
                             existing.columns, existing.dtypes)}
-                        print(
+                        debug_print(
                             f"[DEBUG] existing team_players dtypes: {existing_dtypes}")
                     except Exception:
                         pass
                     try:
                         incoming_dtypes = {c: str(t) for c, t in zip(
                             roster_df.columns, roster_df.dtypes)}
-                        print(
+                        debug_print(
                             f"[DEBUG] incoming roster_df dtypes: {incoming_dtypes}")
                     except Exception:
                         pass
@@ -123,7 +124,8 @@ def get_team(team_key: str) -> list:
                 else:
                     save_parquet(roster_df, team_players_path)
         except Exception as e:
-            print(f"[DEBUG] Failed to flatten roster for {team_key}: {e}")
+            debug_print(
+                f"[DEBUG] Failed to flatten roster for {team_key}: {e}")
 
         # Extract player keys from roster payload if available
         player_keys = []
@@ -203,11 +205,11 @@ def roster_to_rows(payload: Dict[str, Any], team_key: str) -> pl.DataFrame | Non
         roster = payload.get("roster")
     if not roster:
         return None
-    print(
+    debug_print(
         f"[DEBUG] resolved team_name={team_name} for team_key={team_key}; roster_len={len(roster) if roster else 0}")
     try:
         sample = roster[0]
-        print(f"[DEBUG] sample roster item: {repr(sample)[:400]}")
+        debug_print(f"[DEBUG] sample roster item: {repr(sample)[:400]}")
     except Exception:
         pass
 
@@ -301,7 +303,7 @@ def _normalize_team_players_df(df: pl.DataFrame) -> pl.DataFrame:
             df = df.with_columns(pl.Series(converted).cast(
                 pl.Utf8).alias("player_positions"))
         except Exception as e:
-            print(
+            debug_print(
                 f"[DEBUG] _normalize: could not materialize/convert player_positions: {e}")
 
     # If some columns are Null-only, casting will set a concrete dtype so concatenation works
@@ -321,7 +323,8 @@ def _normalize_team_players_df(df: pl.DataFrame) -> pl.DataFrame:
     try:
         sample_vals = df.select(
             pl.col("player_positions")).to_series().head(5).to_list()
-        print(f"[DEBUG] sample player_positions post-normalize: {sample_vals}")
+        debug_print(
+            f"[DEBUG] sample player_positions post-normalize: {sample_vals}")
     except Exception:
         pass
 

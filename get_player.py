@@ -59,7 +59,8 @@ def save_player(df: pl.DataFrame, path: Path) -> None:
     # Deprecated: kept for compatibility
     path.parent.mkdir(parents=True, exist_ok=True)
     df.write_parquet(path, compression="snappy")
-    print(f"[DEBUG] Saved player to {path}")
+    from common import debug_print
+    debug_print(f"[DEBUG] Saved player to {path}")
 
 
 def get_player(player_key: str) -> None:
@@ -69,4 +70,5 @@ def get_player(player_key: str) -> None:
     path = _player_path(player_key)
     path.parent.mkdir(parents=True, exist_ok=True)
     df.write_parquet(path, compression="snappy")
-    print(f"[DEBUG] Saved player to {path}")
+    from common import debug_print
+    debug_print(f"[DEBUG] Saved player to {path}")

@@ -9,6 +9,15 @@ from yahoo_oauth import OAuth2
 DATA_DIR = Path("Data")
 OAUTH_FILE = "oauth2.json"
 
+# Global debug flag controlled by ETL.py
+DEBUG = False
+
+
+def debug_print(msg: str) -> None:
+    """Print debug messages only when DEBUG is enabled."""
+    if DEBUG:
+        print(msg)
+
 
 def get_session() -> OAuth2:
     """
@@ -52,9 +61,9 @@ def validate_parquet(path: Path) -> None:
         print(f"\n❌ Parquet validation failed for {path}:", e)
         return
 
-    print("[DEBUG] Schema (column: dtype):")
+    debug_print("Schema (column: dtype):")
     for name, dtype in df_check.schema.items():
-        print(f"[DEBUG]  - {name}: {dtype}")
+        debug_print(f" - {name}: {dtype}")
 
     try:
         import duckdb  # type: ignore

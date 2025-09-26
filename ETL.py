@@ -13,6 +13,8 @@ def main():
     # CLI: allow running specific parts of the ETL
     import argparse
     parser = argparse.ArgumentParser(description="Yahoo FF ETL runner")
+    parser.add_argument("--debug", action="store_true",
+                        help="Enable debug prints prefixed with [DEBUG]")
     parser.add_argument("--standings", action="store_true",
                         help="Fetch standings")
     parser.add_argument("--teams", action="store_true",
@@ -22,6 +24,11 @@ def main():
     parser.add_argument("--all", action="store_true",
                         help="Run standings, teams, and players")
     args = parser.parse_args()
+
+    # Enable debug messages globally when requested
+    if args.debug:
+        import common as _common
+        _common.DEBUG = True
 
     # If no flags provided, behave like --all
     if not any([args.standings, args.teams, args.players, args.all]):
