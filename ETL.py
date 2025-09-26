@@ -2,6 +2,11 @@
 
 from common import get_session, select_league, save_parquet
 import polars as pl
+import logging
+
+# Reduce verbosity from third-party libraries (only show warnings/errors)
+logging.getLogger("yahoo_oauth").setLevel(logging.WARNING)
+logging.getLogger("yahoo_oauth.oauth").setLevel(logging.WARNING)
 
 
 def main():

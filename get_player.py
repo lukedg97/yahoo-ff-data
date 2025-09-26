@@ -10,15 +10,42 @@ OUTPUT_DIR = Path("Data") / "players"
 
 
 def _player_path(player_key: str) -> Path:
-    safe = player_key.replace("/", "_").replace(".", "_")
+    # Accept numeric keys (int) by coercing to str first
+    key_str = str(player_key)
+    safe = key_str.replace("/", "_").replace(".", "_")
     return OUTPUT_DIR / f"{safe}.parquet"
 
 
 def fetch_player(sc, player_key: str) -> Dict[str, Any]:
-    """Fetch player metadata/stats for a given player_key."""
-    plr = yfa.Player(sc, player_key)
-    info = plr.metadata()
-    stats = plr.stats() if hasattr(plr, "stats") else None
+    """Fetch player metadata/stats for a given player_key.
+
+    If `yahoo_fantasy_api.Player` is not present in the installed package, return a
+    minimal serializable payload instead of raising.
+    """
+    try:
+        PlayerCls = getattr(yfa, "Player")
+    except Exception:
+        PlayerCls = None
+
+    # coerce numeric keys to string
+    player_key = str(player_key)
+
+    if PlayerCls is None:
+        # Best-effort fallback: return repr and key only
+        return {"player_key": player_key, "repr": f"Player({player_key}) - fallback"}
+
+    plr = PlayerCls(sc, player_key)
+    info = None
+    stats = None
+    try:
+        info = plr.metadata()
+    except Exception:
+        info = None
+    try:
+        stats = plr.stats() if hasattr(plr, "stats") else None
+    except Exception:
+        stats = None
+
     return {"metadata": info, "stats": stats}
 
 
@@ -32,7 +59,7 @@ def save_player(df: pl.DataFrame, path: Path) -> None:
     # Deprecated: kept for compatibility
     path.parent.mkdir(parents=True, exist_ok=True)
     df.write_parquet(path, compression="snappy")
-    print(f"Saved player to {path}")
+    print(f"[DEBUG] Saved player to {path}")
 
 
 def get_player(player_key: str) -> None:
@@ -42,4 +69,4 @@ def get_player(player_key: str) -> None:
     path = _player_path(player_key)
     path.parent.mkdir(parents=True, exist_ok=True)
     df.write_parquet(path, compression="snappy")
-    print(f"Saved player to {path}")
+    print(f"[DEBUG] Saved player to {path}")

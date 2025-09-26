@@ -52,10 +52,9 @@ def validate_parquet(path: Path) -> None:
         print(f"\n❌ Parquet validation failed for {path}:", e)
         return
 
-    print("\nParquet validation: ✅ file is readable")
-    print("Schema (column: dtype):")
+    print("[DEBUG] Schema (column: dtype):")
     for name, dtype in df_check.schema.items():
-        print(f"  - {name}: {dtype}")
+        print(f"[DEBUG]  - {name}: {dtype}")
 
     try:
         import duckdb  # type: ignore
