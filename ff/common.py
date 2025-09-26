@@ -1,13 +1,18 @@
 from pathlib import Path
 from typing import List
+from datetime import datetime
 
 import polars as pl
 import yahoo_fantasy_api as yfa
 from yahoo_oauth import OAuth2
 
-# Shared configuration used by multiple modules
-DATA_DIR = Path("Data")
-OAUTH_FILE = "oauth2.json"
+# Resolve project root relative to this file (ff/common.py -> project_root/ff/common.py)
+# PROJECT_ROOT = <repo root>
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# Shared configuration used by multiple modules. Use absolute paths so code works
+# whether imported from package or run from repo root.
+DATA_DIR = PROJECT_ROOT / "Data"
+OAUTH_FILE = PROJECT_ROOT / "oauth2.json"
 
 # Global debug flag controlled by ETL.py
 DEBUG = False
@@ -16,7 +21,9 @@ DEBUG = False
 def debug_print(msg: str) -> None:
     """Print debug messages only when DEBUG is enabled."""
     if DEBUG:
-        print(msg)
+        # Include an ISO timestamp to help profile slow spots when --debug is used
+        ts = datetime.now().isoformat(timespec="seconds")
+        print(f"[DEBUG {ts}] {msg}")
 
 
 def get_session() -> OAuth2:
@@ -27,7 +34,7 @@ def get_session() -> OAuth2:
     oauth_path = Path(OAUTH_FILE)
     if not oauth_path.exists():
         raise FileNotFoundError(
-            f"Missing {OAUTH_FILE}. Create it with your Yahoo client_id/client_secret/redirect_uri."
+            f"Missing {oauth_path}. Create it with your Yahoo client_id/client_secret/redirect_uri."
         )
     sc = OAuth2(None, None, from_file=str(oauth_path))
     if not sc.token_is_valid():

@@ -4,10 +4,11 @@ from typing import List, Dict
 import polars as pl
 import yahoo_fantasy_api as yfa
 
-# Import shared helpers from common to avoid duplication
-from common import get_session, select_league, save_parquet
+# Import shared helpers from package common to avoid duplication
+from .common import get_session, select_league, DATA_DIR
+from .common import save_parquet as _save_parquet
 
-OUTPUT_PARQUET = Path("Data") / "standings.parquet"
+OUTPUT_PARQUET = DATA_DIR / "standings.parquet"
 
 
 def fetch_standings(sc, league_key: str) -> List[Dict]:
@@ -16,7 +17,7 @@ def fetch_standings(sc, league_key: str) -> List[Dict]:
     return lg.standings()
 
 
-# Parquet validation is provided by ETL.validate_parquet
+# Parquet validation is provided by common.validate_parquet
 
 
 def transform_standings(raw: List[Dict]) -> pl.DataFrame:
@@ -161,8 +162,7 @@ def display_standings(df: pl.DataFrame) -> None:
 
 
 def save_parquet(df: pl.DataFrame, path: Path) -> None:
-    # Delegate to shared helper in ETL
-    from ETL import save_parquet as _save_parquet
+    # Delegate to shared helper in common
     _save_parquet(df, path)
 
 
